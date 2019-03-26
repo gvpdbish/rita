@@ -179,7 +179,9 @@ func scanHeader(fileScanner *bufio.Scanner) (*fpt.BroHeader, error) {
 			} else if strings.Contains(line[0], "types") {
 				toReturn.Types = line[1:]
 			} else if strings.Contains(line[0], "path") {
-				toReturn.ObjType = line[1]
+				//remove any tags on the log type
+				//i.e. turn http_eth0 into http.
+				toReturn.ObjType = stripObjType(line[1])
 			}
 		} else {
 			//We are done parsing the comments
@@ -191,6 +193,18 @@ func scanHeader(fileScanner *bufio.Scanner) (*fpt.BroHeader, error) {
 		return toReturn, errors.New("Name / Type mismatch")
 	}
 	return toReturn, nil
+}
+
+//stripObjType strips a tag of the form "_XXXXX" from the input string.
+//Used to remove interface tags from the logs produced by security onion.
+//I.e. this function transforms "http_eth0" into "http"
+//See: https://github.com/security-onion-solutions/security-onion/issues/205#issue-64090511
+func stripObjType(objType string) string {
+	idx := strings.LastIndex(objType, "_")
+	if idx == -1 {
+		return objType
+	}
+	return objType[0:idx]
 }
 
 //mapBroHeaderToParserType checks a parsed BroHeader against
